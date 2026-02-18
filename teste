@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo Premium de Perfumes</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#1e1e1e,#2c2c2c);
+    margin:0;
+    padding:20px;
+    color:white;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    font-weight:300;
+    letter-spacing:2px;
+}
+
+.config{
+    background:#ffffff10;
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:20px;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border-radius:8px;
+    border:none;
+    font-size:14px;
+}
+
+button{
+    cursor:pointer;
+    border:none;
+}
+
+.btn-primary{
+    background: linear-gradient(45deg,#d4af37,#f1d06b);
+    color:black;
+    padding:10px 20px;
+    border-radius:30px;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.btn-primary:hover{
+    transform:scale(1.05);
+}
+
+.catalogo{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    color:black;
+    border-radius:20px;
+    padding:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.card img{
+    width:100%;
+    height:250px;
+    object-fit:cover;
+    border-radius:15px;
+}
+
+.titulo{
+    font-size:18px;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+.preco{
+    font-size:20px;
+    color:#d4af37;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+.descricao{
+    font-size:14px;
+    margin-top:8px;
+    color:#555;
+}
+
+.btn-interesse{
+    margin-top:15px;
+    width:100%;
+    background: linear-gradient(45deg,#000,#333);
+    color:white;
+    padding:12px;
+    border-radius:30px;
+    font-weight:bold;
+    letter-spacing:1px;
+    transition:0.3s;
+}
+
+.btn-interesse:hover{
+    background: linear-gradient(45deg,#d4af37,#f1d06b);
+    color:black;
+}
+
+.admin-actions{
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.admin-actions button{
+    background:#ddd;
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+.footer{
+    text-align:center;
+    margin-top:30px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>CATÁLOGO PREMIUM</h1>
+
+<div class="config">
+<label>Número do WhatsApp (com DDI e DDD)</label>
+<input type="text" id="whatsapp" placeholder="Ex: 5551985338418">
+
+<h3>Cadastrar Perfume</h3>
+
+<input type="text" id="titulo" placeholder="Título">
+<textarea id="descricao" placeholder="Descrição"></textarea>
+<input type="number" id="preco" placeholder="Preço">
+<input type="file" accept="image/*" capture="environment" id="foto">
+
+<button class="btn-primary" onclick="salvarPerfume()">Salvar Perfume</button>
+<button class="btn-primary" onclick="gerarPDF()">Gerar PDF Premium</button>
+
+</div>
+
+<div class="catalogo" id="catalogo"></div>
+
+<div class="footer">
+    Desenvolvido para vendas premium ✨
+</div>
+
+</div>
+
+<script>
+
+let perfumes=[];
+let editIndex=null;
+
+function salvarPerfume(){
+
+    let titulo=document.getElementById("titulo").value;
+    let descricao=document.getElementById("descricao").value;
+    let preco=document.getElementById("preco").value;
+    let fotoInput=document.getElementById("foto");
+
+    if(!titulo || !preco){
+        alert("Preencha título e preço.");
+        return;
+    }
+
+    let reader=new FileReader();
+
+    reader.onload=function(e){
+
+        let perfume={
+            titulo,
+            descricao,
+            preco,
+            foto:e.target.result
+        };
+
+        if(editIndex!==null){
+            perfumes[editIndex]=perfume;
+            editIndex=null;
+        }else{
+            perfumes.push(perfume);
+        }
+
+        limparCampos();
+        atualizarCatalogo();
+    }
+
+    if(fotoInput.files[0]){
+        reader.readAsDataURL(fotoInput.files[0]);
+    }else{
+        reader.onload({target:{result:""}});
+    }
+}
+
+function atualizarCatalogo(){
+
+    let catalogo=document.getElementById("catalogo");
+    catalogo.innerHTML="";
+
+    perfumes.forEach((p,index)=>{
+
+        let whatsapp=document.getElementById("whatsapp").value;
+        let mensagem=encodeURIComponent(
+            `Olá, tenho interesse nesse produto: ${p.titulo} - R$ ${parseFloat(p.preco).toFixed(2)}`
+        );
+
+        let link=`https://wa.me/${whatsapp}?text=${mensagem}`;
+
+        catalogo.innerHTML+=`
+        <div class="card">
+            ${p.foto ? `<img src="${p.foto}">` : ""}
+            <div class="titulo">${p.titulo}</div>
+            <div class="preco">R$ ${parseFloat(p.preco).toFixed(2)}</div>
+            <div class="descricao">${p.descricao}</div>
+
+            <a href="${link}" target="_blank">
+                <button class="btn-interesse">TENHO INTERESSE</button>
+            </a>
+
+            <div class="admin-actions">
+                <button onclick="editar(${index})">Editar</button>
+                <button onclick="excluir(${index})">Excluir</button>
+            </div>
+        </div>
+        `;
+    });
+}
+
+function editar(index){
+    let p=perfumes[index];
+    document.getElementById("titulo").value=p.titulo;
+    document.getElementById("descricao").value=p.descricao;
+    document.getElementById("preco").value=p.preco;
+    editIndex=index;
+}
+
+function excluir(index){
+    perfumes.splice(index,1);
+    atualizarCatalogo();
+}
+
+function limparCampos(){
+    document.getElementById("titulo").value="";
+    document.getElementById("descricao").value="";
+    document.getElementById("preco").value="";
+    document.getElementById("foto").value="";
+}
+
+function gerarPDF(){
+
+    const { jsPDF } = window.jspdf;
+    const doc=new jsPDF();
+
+    let y=10;
+
+    perfumes.forEach(p=>{
+
+        if(p.foto){
+            doc.addImage(p.foto,'JPEG',10,y,40,40);
+        }
+
+        doc.text(p.titulo,60,y+10);
+        doc.text("R$ "+parseFloat(p.preco).toFixed(2),60,y+20);
+        doc.text(doc.splitTextToSize(p.descricao,120),60,y+30);
+
+        y+=70;
+
+        if(y>250){
+            doc.addPage();
+            y=10;
+        }
+
+    });
+
+    doc.save("catalogo_premium.pdf");
+}
+
+</script>
+
+</body>
+</html>
